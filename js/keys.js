@@ -19,13 +19,15 @@ var keydown = function(c){
 			right = true
 			break
 		case 32://space
-			socket.emit('action', 'space', [mx,my])
+			socket.emit('action', 'ability', [mx,my])
 			break		
 		case 72://h
 			break
 		case 82://r
 			socket.emit('switch')
 			break
+		case 16://shift
+			socket.emit('action', 'spell', [mx,my])
 		default:
 	}
 }

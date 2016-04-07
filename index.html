@@ -34,7 +34,7 @@
 			spell
 		</button>
 		<select name="actions" id='_m2' class="buttt">
-			<option value="sword" selected="selected">sword</option>
+			<option value="freeze" selected="selected">freeze</option>
 		</select>	
 	</div>
 	
@@ -43,7 +43,8 @@
 			ability
 		</button>
 		<select name="actions" id='_space' class="buttt">
-			<option value="sprint" selected="selected">sprint</option>
+			<option value="dodge" selected="selected">dodge</option>
+			<option value="sprint">sprint</option>
 		</select>	
 	</div>	
 
@@ -111,6 +112,9 @@
 							case "knockback":
 								ctx.fillStyle="#ff0000"
 								break
+							case "frozen":
+								ctx.fillStyle = "#0000ff"
+								break
 							default:
 								ctx.fillStyle="#000000"
 						}
@@ -153,8 +157,8 @@
         document.addEventListener('contextmenu', function(c) { c.preventDefault() }, false)	
 		canvas.addEventListener("mousedown", function(c){
 			coord = [(c.clientX - canvas.offsetLeft), (c.clientY - canvas.offsetTop)]
-			if(c.which == 1){ socket.emit('action', 'left', coord)}
-			if(c.which == 3){ socket.emit('action', 'right', coord)}
+			if(c.which == 1){ socket.emit('action', 'weapon1', coord)}
+			if(c.which == 3){ socket.emit('action', 'weapon2', coord)}
 		}, false)
 		canvas.addEventListener('mousemove',function(c){
 			mx = (c.clientX - canvas.offsetLeft)
@@ -166,19 +170,19 @@
 		var m1butt = document.getElementById('m1')
 		var _m1butt = document.getElementById('_m1')
 		m1butt.onclick = function(){
-			socket.emit('change',_m1butt.options[_m1butt.selectedIndex].value,'left')
+			socket.emit('change',_m1butt.options[_m1butt.selectedIndex].value,'weapon')
 		}
 		
 		var m2butt = document.getElementById('m2')
 		var _m2butt = document.getElementById('_m2')
 		m2butt.onclick = function(){
-			socket.emit('change',_m2butt.options[_m2butt.selectedIndex].value,'right')
+			socket.emit('change',_m2butt.options[_m2butt.selectedIndex].value,'spell')
 		}
 		
 		var space = document.getElementById('space')
 		var _space = document.getElementById('_space')
 		space.onclick = function(){
-			socket.emit('change',_space.options[_space.selectedIndex].value,'space')
+			socket.emit('change',_space.options[_space.selectedIndex].value,'ability')
 		}			
 		
 		var agentbutt = document.getElementById('agent')

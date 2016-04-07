@@ -30,6 +30,7 @@ agent beam
 samurai AI
 fists
 
+
 play test
 
 ===============================
@@ -82,6 +83,12 @@ http.listen(app.get('port'), function(){ console.log('listening on ' + app.get('
 }
 
 {//functions
+function knockback1(p1,p2){
+	p1.phase = "knockback"
+	var direction1 = new victor(p1.x - p2.x, p1.y - p2.y).normalize()
+	p1.ddirection = new victor(direction1.x,direction1.y)
+	p1.dcount = 0
+}
 function knockback(p1,p2){
 	p1.phase = "knockback"
 	p2.phase = "knockback"
@@ -366,11 +373,13 @@ bots = {//npc
 			things[id].dcount = 0
 			things[id].ddistance = 15
 			things[id].dspeed = 20
+			things[id].pcount = 0
+			things[id].ptime = 0
 			
 			things[id].dodgeCD = 200
 			things[id].dodgeCD_ = 0 
 			
-			things[id].health = 20
+			things[id].health = 10
 			things[id].speed = .5
 			things[id].direction = new victor(0,0)
 			things[id].size = 20
@@ -492,6 +501,16 @@ bots = {//npc
 						this.dcount += 1
 						if(this.dcount == this.ddistance){ this.phase = "default" }					
 						break
+					case 'knockback':
+						this._x += this.ddirection.x * this.dspeed
+						this._y += this.ddirection.y * this.dspeed
+						this.dcount += 1
+						if(this.dcount == this.ddistance){ this.phase = "default" }
+						break
+					case 'frozen':
+						this.pcount += 1
+						if(this.pcount == this.ptime){ this.phase = "moving"}
+						break
 					default:
 						console.log('no state')
 				}
@@ -567,7 +586,7 @@ actions = {//abilities
 					if(things[name].collisions.indexOf(thing.id) < 0){				
 						if(thing.isperson || thing.iszombie){
 							hit(thing, things[name].damage)
-							knockback(thing, this.owner)
+							knockback1(thing, this.owner)
 						}
 						if(thing.isweapon){
 							if(thing.owner != this.owner){
@@ -898,19 +917,23 @@ actions = {//abilities
 			}			
 			
 			things[name].collide = function(thing){
-				
-				if(thing.name == "bounce"){ return }
-				if(things[name].collisions.indexOf(thing.id) > -1){ return }
-				
-				var hold = things_draw[thing.id].color
-				thing.speed = 0
-				things_draw[thing.id].color = "#00EEEE"
-				setTimeout(function(){
-					thing.speed = 1
-					if(!things_draw[thing.id]){return}
-					if(things_draw[thing.id].color == "#00EEEE"){ things_draw[thing.id].color = hold }	
-				}, 6000)
-				things[name].collisions.push(thing.id)
+				if(things[name].collisions.indexOf(thing.id) < 0 && thing.name != "bounce"){
+					
+					// var hold = things_draw[thing.id].color
+					// thing.speed = 0
+					// things_draw[thing.id].color = "#00EEEE"
+					// setTimeout(function(){
+						// thing.speed = 1
+						// if(!things_draw[thing.id]){return}
+						// if(things_draw[thing.id].color == "#00EEEE"){ things_draw[thing.id].color = hold }	
+					// }, 6000)
+					if(thing.isperson || thing.iszombie){
+						thing.phase = "frozen"
+						thing.pcount = 0
+						thing.ptime = 300
+					}
+					things[name].collisions.push(thing.id)
+				}
 				return				
 			}	
 			
@@ -2008,7 +2031,7 @@ actions = {//abilities
 					if(things[name].collisions.indexOf(thing.id) < 0){				
 						if(thing.isperson || thing.iszombie){
 							hit(thing, things[name].damage)
-							knockback(thing, this.owner)
+							knockback1(thing, this.owner)
 						}
 						if(thing.isweapon){
 							if(thing.owner != this.owner){
@@ -2166,12 +2189,15 @@ io.on('connection', function(client){//socket io
 	P.m1 = actions['sword']
 	P.m2 = actions['axe']
 	P.space = actions['dodge']
+	P.shift = actions['freeze']
 	P.collide = function(thing){  }
 	
 	//new shit
 	P.ddirection = new victor(0,0)
 	P.dspeed = 10
 	P.dcount = 0
+	P.pcount = 0
+	P.ptime = 0
 	P.ddistance = 15
 	P.phase = "moving"
 	P.set1 = weapons["punch"]
@@ -2228,6 +2254,10 @@ io.on('connection', function(client){//socket io
 			this.dcount += 1
 			if(this.dcount == this.ddistance){ this.phase = "moving" }
 		}
+		else if(this.phase == 'frozen'){
+			this.pcount += 1
+			if(this.pcount == this.ptime){ this.phase = "moving"}
+		}
 		
 		update_weapons(this)
 		//for knockback, have colliding change _x/_y
@@ -2266,20 +2296,27 @@ io.on('connection', function(client){//socket io
 	client.on('action', function(which, coord){
 		if(people[client.id].isdead){ return }
 		switch(which){
-			case 'left':
+			case 'weapon1':
 				if(people[client.id].energy <= 0){ break }
 				people[client.id].energy -= people[client.id].m1.cost
 				people[client.id].m1.go(people[client.id], coord)
 				break
-			case 'right':
+			case 'weapon2':
 				if(people[client.id].energy <= 0){ break }
 				people[client.id].energy -= people[client.id].m2.cost
 				people[client.id].m2.go(people[client.id], coord)
 				break
-			case 'space':
-				if(people[client.id].energy <= 0){ break }
-				people[client.id].energy -= people[client.id].space.cost
-				people[client.id].space.go(people[client.id], coord)
+			case 'spell':
+				if(people[client.id].energy > 0){
+					people[client.id].energy -= people[client.id].shift.cost
+					people[client.id].shift.go(people[client.id], coord)
+				}				
+				break
+			case 'ability':
+				if(people[client.id].energy > 0){
+					people[client.id].energy -= people[client.id].space.cost
+					people[client.id].space.go(people[client.id], coord)
+				}
 				break
 			default:
 		}
@@ -2300,13 +2337,19 @@ io.on('connection', function(client){//socket io
 	
 	client.on('change',function(action, key){
 		switch(key){
-			case 'left':
-				people[client.id].m1 = actions[action]
+			case 'weapon':
+				switch(action){
+					case 'sword':
+						people[client.id].m1 = actions['sword']
+						people[client.id].m2 = actions['axe']
+						break
+					default:
+				}
 				break
-			case 'right':
-				people[client.id].m2 = actions[action]
+			case 'spell':
+				people[client.id].shift = actions[action]
 				break
-			case 'space':
+			case 'ability':
 				people[client.id].space = actions[action]
 				break
 			default:
