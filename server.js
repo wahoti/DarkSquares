@@ -528,7 +528,7 @@ actions = {//abilities
 			things[name].id = name
 			things[name].name = 'axe'
 			things[name]._size = 20
-			things[name].damage = 30
+			things[name].damage = 5
 			var direction = new victor(coord[0] - player.x, coord[1] - player.y)
 			direction.normalize()
 			direction.rotate(-1.5).normalize()			
@@ -565,7 +565,10 @@ actions = {//abilities
 						return
 					}
 					if(things[name].collisions.indexOf(thing.id) < 0){				
-						if(thing.isperson || thing.iszombie){ hit(thing, things[name].damage) }
+						if(thing.isperson || thing.iszombie){
+							hit(thing, things[name].damage)
+							knockback(thing, this.owner)
+						}
 						if(thing.isweapon){
 							if(thing.owner != this.owner){
 								knockback(thing.owner, this.owner)
@@ -1958,7 +1961,7 @@ actions = {//abilities
 		}
 	},		
 	sword: object = {
-		cost: 2,
+		cost: 1,
 		go: function(player, coord){	
 			if(player.weapons['sword']){ player.weapons['sword'].end() }
 			var name = player.id + '-' + things_count
@@ -1967,7 +1970,7 @@ actions = {//abilities
 			things[name].id = name
 			things[name].name = 'sword'
 			things[name]._size = 20
-			things[name].damage = 30
+			things[name].damage = 5
 			var direction = new victor(coord[0] - player.x, coord[1] - player.y)
 			direction.normalize()
 			things[name].direction = direction
@@ -2003,7 +2006,10 @@ actions = {//abilities
 						// return
 					// }}
 					if(things[name].collisions.indexOf(thing.id) < 0){				
-						if(thing.isperson || thing.iszombie){ hit(thing, things[name].damage) }
+						if(thing.isperson || thing.iszombie){
+							hit(thing, things[name].damage)
+							knockback(thing, this.owner)
+						}
 						if(thing.isweapon){
 							if(thing.owner != this.owner){
 								knockback(thing.owner, this.owner)
@@ -2065,7 +2071,7 @@ actions = {//abilities
 			
 			things[name].step = function(){	}
 
-			setTimeout(function(){ if(things[name]){ things[name].end()} }, 1000000)//500
+			setTimeout(function(){ if(things[name]){ things[name].end()} }, 500)
 		}
 	},											
 	zombie: object = {
