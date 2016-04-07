@@ -1,0 +1,192 @@
+<html>
+<head>
+	<meta charset="utf-8">
+	<title>Hello Sword</title>
+	<link rel="stylesheet" href="style.css">
+  
+	<script src="js/socket-io.js"></script>
+	<script src="js/keys.js"></script>
+	<script src="http://code.jquery.com/jquery-1.11.1.js"></script>	
+  
+</head>
+<body onunload="disconnect()">
+	<h1 id="title"></h1>
+	<h1 id="test"></h1>
+	<canvas id="hp" width="300" height="30"></canvas>
+	<canvas id="stamina" width="300" height="30"></canvas>
+	<canvas id="field" width="1000" height="1000" ></canvas>
+	
+	<div id="infobox">
+		<p>press 'h' for help</p>
+	</div>
+	
+	<div id="divbutton1">
+		<button type="button" id="m1" class="butt">
+			weapon
+		</button>
+		<select name="actions" id='_m1' class='buttt'>
+			<option value="sword" selected="selected">sword</option>	
+		</select>
+	</div>
+	
+	<div id="divbutton2">
+		<button type="button" id="m2" class="butt">
+			spell
+		</button>
+		<select name="actions" id='_m2' class="buttt">
+			<option value="sword" selected="selected">sword</option>
+		</select>	
+	</div>
+	
+	<div id="divbutton3">
+		<button type="button" id="space" class="butt">
+			ability
+		</button>
+		<select name="actions" id='_space' class="buttt">
+			<option value="sprint" selected="selected">sprint</option>
+		</select>	
+	</div>	
+
+	<div id="divbutton4">
+		<button type="button" id="agent" class="butt">
+			agent
+		</button>
+		<select name="actions" id='_agent' class="buttt">
+			<option value="agent" selected="selected">agent</option>
+		</select>	
+	</div>
+	
+	<script>
+		//document.body.style.zoom="50%"
+	
+		var canvas = document.getElementById("field")
+		var hp_canvas = document.getElementById("hp")
+		var stamina_canvas = document.getElementById("stamina")
+		var ctx = canvas.getContext("2d")
+		var hp_ctx = hp_canvas.getContext("2d")
+		var stamina_ctx = stamina_canvas.getContext("2d")
+		hp_ctx.fillStyle = "#e60000"
+		stamina_ctx.fillStyle = "#00b300"
+		var person = {}
+		var id
+		var things = {}
+		
+		var socket = io()
+		socket.on('init', function(person){ 
+			person = person
+			id = person.id
+		})	
+		
+		socket.on('draw', function(things){ 
+			ctx.clearRect(0, 0, 1000, 1000)
+			hp_ctx.clearRect(0,0,300,30)
+			stamina_ctx.clearRect(0,0,300,30)
+			for(var x in things){	
+				size = things[x].size
+				_size = things[x].size/2
+				
+				if(!things[x].isperson && !things[x].iszombie){
+					ctx.fillStyle = things[x].color
+					ctx.fillRect(things[x].x - _size,things[x].y - _size,size,size)		
+				}
+				else if(things[x].isperson || things[x].iszombie){
+					__size = _size/2
+					if(x == id){
+						ctx.beginPath()
+						ctx.rect(things[x].x - __size - 5, things[x].y - __size - 5, things[x].size + 5, things[x].size + 5)
+						ctx.stroke()
+						ctx.closePath()
+						hp_ctx.fillRect(0,0,(things[x].health/10)*300,30)
+						stamina_ctx.fillRect(0,0,(things[x].energy/10)*300,30)
+					}
+					if(things[x].invisible){ continue }
+					else{
+						switch(things[x].phase){
+							case "moving":
+								ctx.fillStyle="#000000"
+								break
+							case "dodging":
+								ctx.fillStyle="#00ffff"
+								break
+							case "knockback":
+								ctx.fillStyle="#ff0000"
+								break
+							default:
+								ctx.fillStyle="#000000"
+						}
+						ctx.fillRect(things[x].x - _size,things[x].y - _size,size,size)	
+					}
+					/*
+					if(things[x].energy > 6){
+						ctx.fillStyle="#00FF00"
+						ctx.fillRect(things[x].x - __size,things[x].y - __size,_size,_size)
+						continue
+					}
+					if(things[x].energy > 3){
+						ctx.fillStyle="#FFFF00"
+						ctx.fillRect(things[x].x - __size,things[x].y - __size,_size,_size)
+						continue
+					}						
+					if(things[x].energy > 0){
+						ctx.fillStyle="#FF0000"
+						ctx.fillRect(things[x].x - __size,things[x].y - __size,_size,_size)
+						continue
+					}
+					*/
+				}
+			}
+		})
+		
+		//keys
+		document.addEventListener("keydown", keydown, false)
+		document.addEventListener("keyup", keyup, false)
+		document.addEventListener("keydown", function(){
+			socket.emit('keys', up, down, left, right)
+		}, false)
+		document.addEventListener("keyup", function(){
+			socket.emit('keys', up, down, left, right)
+		}, false)
+		
+		//mouse		
+		var mx = 0
+		var my = 0		
+        document.addEventListener('contextmenu', function(c) { c.preventDefault() }, false)	
+		canvas.addEventListener("mousedown", function(c){
+			coord = [(c.clientX - canvas.offsetLeft), (c.clientY - canvas.offsetTop)]
+			if(c.which == 1){ socket.emit('action', 'left', coord)}
+			if(c.which == 3){ socket.emit('action', 'right', coord)}
+		}, false)
+		canvas.addEventListener('mousemove',function(c){
+			mx = (c.clientX - canvas.offsetLeft)
+			my = (c.clientY - canvas.offsetTop)
+			//socket.emit('mouse', mx, my)
+		},false)
+
+		//buttons
+		var m1butt = document.getElementById('m1')
+		var _m1butt = document.getElementById('_m1')
+		m1butt.onclick = function(){
+			socket.emit('change',_m1butt.options[_m1butt.selectedIndex].value,'left')
+		}
+		
+		var m2butt = document.getElementById('m2')
+		var _m2butt = document.getElementById('_m2')
+		m2butt.onclick = function(){
+			socket.emit('change',_m2butt.options[_m2butt.selectedIndex].value,'right')
+		}
+		
+		var space = document.getElementById('space')
+		var _space = document.getElementById('_space')
+		space.onclick = function(){
+			socket.emit('change',_space.options[_space.selectedIndex].value,'space')
+		}			
+		
+		var agentbutt = document.getElementById('agent')
+		var _agentbutt = document.getElementById('_agent')
+		agent.onclick = function(){
+			socket.emit('agent',_agentbutt.options[_agentbutt.selectedIndex].value,'agent')
+		}			
+	</script>
+
+</body>
+</html>
