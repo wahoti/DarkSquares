@@ -22,6 +22,10 @@ invincible during dodge
 knockback
 agent movement
 
+4/7/16
+lots of minor changes
+
+
 todo
 agent movement
 	calculate distance from center
@@ -379,6 +383,9 @@ bots = {//npc
 			things[id].dodgeCD = 200
 			things[id].dodgeCD_ = 0 
 			
+			things[id].shootCD = 500
+			things[id].shootCD_ = 0
+			
 			things[id].health = 10
 			things[id].speed = .5
 			things[id].direction = new victor(0,0)
@@ -494,6 +501,15 @@ bots = {//npc
 							// this.ddirection = new victor(Math.random() * 2 - 1, Math.random() * 2 - 1).normalize()
 							this.phase = 'dodging'
 						}
+						this.shootCD_++
+						if(this.shootCD_ >= this.shootCD){
+							this.shootCD_ = 0
+							for(var x in people){
+								if(!people[x].isdead){
+									actions['beam'].go(this, [people[x].x,people[x].y])
+								}
+							}							
+						}
 						break
 					case 'dodging':
 						this._x += this.ddirection.x * this.dspeed
@@ -523,10 +539,170 @@ bots = {//npc
 					this.x = this._x
 					this.y = this._y
 					return
+				}
 			}
-	}
 			
 			spawn(things[id])
+		}
+	},
+	samurai: object = {
+		spawn: function(){
+			var id = 'agent' + things_count
+			things_count++
+			
+			things[id] = {}
+			things_draw[id] = {}
+			
+			things[id].id = id
+			things_draw[id].id = id
+			things[id].iszombie = true
+			things_draw[id].iszombie = true			
+			
+			things[id].x = -100
+			things[id]._x = -100
+			things[id].y = -100
+			things[id]._y= -100
+			things_draw[id].x = -100
+			things_draw[id].y = -100
+
+			things[id].ddirection = new victor(0,0)
+			things[id].dcount = 0
+			things[id].ddistance = 15
+			things[id].dspeed = 20
+			things[id].pcount = 0
+			things[id].ptime = 0
+			
+			things[id].dodgeCD = 200
+			things[id].dodgeCD_ = 0 
+			
+			things[id].shootCD = 500
+			things[id].shootCD_ = 0
+			
+			things[id].health = 10
+			things[id].speed = .5
+			things[id].direction = new victor(0,0)
+			things[id].size = 20
+			things_draw[id].size = things[id].size
+			
+			things[id].xQuad = 0
+			things[id].xQuad_ = false
+			things[id].yQuad = 0
+			things[id].yQuad_ = false
+			
+			things_draw[id].color = "#000000"
+			
+			things[id].phase = "default"
+			
+			things[id].collide = function(thing){
+				
+			}
+			
+			things[id].end = function(){				
+				hold_id = this.id
+				delete things[hold_id]
+				delete things_draw[hold_id]
+			}
+			
+			things[id].step = function(){
+				things_draw[this.id].x = this.x
+				things_draw[this.id].y = this.y
+				things_draw[this.id].energy = this.energy
+				things_draw[this.id].health = this.health
+				things_draw[this.id].phase = this.phase
+				
+				this._x = this.x
+				this._y = this.y
+				_size = this.size/2
+				
+				switch(this.phase){
+					case 'default':		
+						//find target
+						//find distance to target
+						//if distance > good: move closer
+						//if distance < good: move away
+						//inc attack CD counter
+						//if CD go to attack state
+						//attack state
+							//dodge in
+							//swing torwards player
+							//dodge out
+							//back to default
+						var target = null
+						var closest = 10000
+						for(var x in people){
+							if(!people[x].isdead){
+								var a = Math.pow(people[x].x - this.x, 2)
+								var b = Math.pow(people[x].y - this.y, 2)
+								var c = Math.sqrt(a + b)
+								if(c < closest){ 
+									closest = c
+									target = people[x]
+								}
+							}
+						}
+				
+						if(target != null){
+							var direction = new victor(target.x - this.x, target.y - this.y)
+							direction.normalize()
+							this.direction = direction
+							if(c > 300){
+								this._x = this.x + (this.direction.x * this.speed)
+								this._y = this.y + (this.direction.y * this.speed)
+							}
+							else if(c < 300){
+								this._x = this.x - (this.direction.x * this.speed)
+								this._y = this.y - (this.direction.y * this.speed)								
+							}
+						}
+						
+						// this.dodgeCD_++
+						if(this.dodgeCD_ >= this.dodgeCD){
+							this.dodgeCD_ = 0
+							this.dcount = 0
+							this.phase = 'dodging'
+						}
+						// this.shootCD_++
+						if(this.shootCD_ >= this.shootCD){
+							this.shootCD_ = 0
+							for(var x in people){
+								if(!people[x].isdead){
+									actions['beam'].go(this, [people[x].x,people[x].y])
+								}
+							}							
+						}
+						break
+					case 'dodging':
+						this._x += this.ddirection.x * this.dspeed
+						this._y += this.ddirection.y * this.dspeed
+						this.dcount += 1
+						if(this.dcount == this.ddistance){ this.phase = "default" }					
+						break
+					case 'knockback':
+						this._x += this.ddirection.x * this.dspeed
+						this._y += this.ddirection.y * this.dspeed
+						this.dcount += 1
+						if(this.dcount == this.ddistance){ this.phase = "default" }
+						break
+					case 'frozen':
+						this.pcount += 1
+						if(this.pcount == this.ptime){ this.phase = "moving"}
+						break
+					default:
+						console.log('no state')
+				}
+				
+				// update_weapons(this)
+				//for knockback, have colliding change _x/_y
+				if(colliding(this)){ return }
+				else{
+					// move_weapons(this)
+					this.x = this._x
+					this.y = this._y
+					return
+				}
+			}
+			
+			spawn(things[id])			
 		}
 	}
 }
@@ -678,7 +854,7 @@ actions = {//abilities
 				things[name] = {}
 				things_draw[name] = {}
 				things[name].id = name
-				things[name].speed = 30
+				things[name].speed = 20
 				things[name].name = 'beam'
 				things_draw[name].color = '#FF00FF'
 				things[name].size = 10
@@ -2323,12 +2499,13 @@ io.on('connection', function(client){//socket io
 	})		
 	
 	client.on('agent',function(bot){
-		switch(bot){
-			case 'agent':
-				bots['agent'].spawn()
-				break
-			default:
-		}
+		bots[bot].spawn()
+		// switch(bot){
+			// case 'agent':
+				// bots['agent'].spawn()
+				// break
+			// default:
+		// }
 	})
 	
 	client.on('respawn',function(){ 
