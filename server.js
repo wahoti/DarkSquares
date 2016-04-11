@@ -325,14 +325,16 @@ function spawn(thing){
 }
 function person_spawn(person_id){
 	var person = things[person_id]
-	if(person.isdead){
-		spawn(person)
-		things_draw[person.id].color = "#000000"		
-		person.health = 10
-		person.energy = 10
-		person.speed = 1
-		person.isdead = false
-		delete things_draw[person.id + '-tombstone']
+	if(person){
+		if(person.isdead){
+			spawn(person)
+			things_draw[person.id].color = "#000000"		
+			person.health = 10
+			person.energy = 10
+			person.speed = 1
+			person.isdead = false
+			delete things_draw[person.id + '-tombstone']
+		}
 	}
 }
 var update_interval = setInterval(function(){ for(var x in things){ if(things[x].step){things[x].step()}}}, 8)
@@ -384,7 +386,7 @@ bots = {//npc
 			things[id].dodgeCD = 200
 			things[id].dodgeCD_ = 0 
 			
-			things[id].shootCD = 500
+			things[id].shootCD = 200
 			things[id].shootCD_ = 0
 			
 			things[id].health = 10
@@ -507,7 +509,7 @@ bots = {//npc
 							this.shootCD_ = 0
 							for(var x in people){
 								if(!people[x].isdead){
-									actions['beam'].go(this, [people[x].x,people[x].y])
+									actions['shoot'].go(this, [people[x].x,people[x].y])
 								}
 							}							
 						}
@@ -568,8 +570,8 @@ bots = {//npc
 
 			things[id].ddirection = new victor(0,0)
 			things[id].dcount = 0
-			things[id].ddistance = 15
-			things[id].dspeed = 20
+			things[id].ddistance = 25
+			things[id].dspeed = 10
 			things[id].pcount = 0
 			things[id].ptime = 0
 			
@@ -627,7 +629,7 @@ bots = {//npc
 							// actions['shoot'].go(this, [this.target.x, this.target.y])
 							if(!this.atked){
 								this.atked = true
-								actions['sword'].go(this, [this.target.x, this.target.y])
+								actions['axe'].go(this, [this.target.x, this.target.y])
 							}
 							this.atking_++
 							if(this.atking_ == this.atking){
@@ -2487,6 +2489,7 @@ io.on('connection', function(client){//socket io
 	console.log('connected (' + people[client.id].x + ', ' + people[client.id].y + ')')	
 	
 	client.on('disconnect', function(){
+		// things[client.id].end()
 		delete people[client.id]
 		delete things_draw[client.id]
 		delete things[client.id]
